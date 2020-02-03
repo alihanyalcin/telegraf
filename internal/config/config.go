@@ -1411,7 +1411,9 @@ func buildParser(name string, tbl *ast.Table) (parsers.Parser, error) {
 }
 
 func getParserConfig(name string, tbl *ast.Table) (*parsers.Config, error) {
-	c := &parsers.Config{}
+	c := &parsers.Config{
+		JSONStrict: true,
+	}
 
 	if node, ok := tbl.Fields["data_format"]; ok {
 		if kv, ok := node.(*ast.KeyValue); ok {
@@ -1508,6 +1510,18 @@ func getParserConfig(name string, tbl *ast.Table) (*parsers.Config, error) {
 		if kv, ok := node.(*ast.KeyValue); ok {
 			if str, ok := kv.Value.(*ast.String); ok {
 				c.JSONTimezone = str.Value
+			}
+		}
+	}
+
+	if node, ok := tbl.Fields["json_strict"]; ok {
+		if kv, ok := node.(*ast.KeyValue); ok {
+			if b, ok := kv.Value.(*ast.Boolean); ok {
+				var err error
+				c.JSONStrict, err = b.Boolean()
+				if err != nil {
+					return nil, err
+				}
 			}
 		}
 	}
@@ -1808,6 +1822,7 @@ func getParserConfig(name string, tbl *ast.Table) (*parsers.Config, error) {
 	delete(tbl.Fields, "json_time_format")
 	delete(tbl.Fields, "json_time_key")
 	delete(tbl.Fields, "json_timezone")
+	delete(tbl.Fields, "json_strict")
 	delete(tbl.Fields, "data_type")
 	delete(tbl.Fields, "collectd_auth_file")
 	delete(tbl.Fields, "collectd_security_level")
@@ -1952,6 +1967,18 @@ func buildSerializer(name string, tbl *ast.Table) (serializers.Serializer, error
 		}
 	}
 
+	if node, ok := tbl.Fields["splunkmetric_multimetric"]; ok {
+		if kv, ok := node.(*ast.KeyValue); ok {
+			if b, ok := kv.Value.(*ast.Boolean); ok {
+				var err error
+				c.SplunkmetricMultiMetric, err = b.Boolean()
+				if err != nil {
+					return nil, err
+				}
+			}
+		}
+	}
+
 	if node, ok := tbl.Fields["wavefront_source_override"]; ok {
 		if kv, ok := node.(*ast.KeyValue); ok {
 			if ary, ok := kv.Value.(*ast.Array); ok {
@@ -1976,6 +2003,42 @@ func buildSerializer(name string, tbl *ast.Table) (serializers.Serializer, error
 		}
 	}
 
+	if node, ok := tbl.Fields["prometheus_export_timestamp"]; ok {
+		if kv, ok := node.(*ast.KeyValue); ok {
+			if b, ok := kv.Value.(*ast.Boolean); ok {
+				var err error
+				c.PrometheusExportTimestamp, err = b.Boolean()
+				if err != nil {
+					return nil, err
+				}
+			}
+		}
+	}
+
+	if node, ok := tbl.Fields["prometheus_sort_metrics"]; ok {
+		if kv, ok := node.(*ast.KeyValue); ok {
+			if b, ok := kv.Value.(*ast.Boolean); ok {
+				var err error
+				c.PrometheusSortMetrics, err = b.Boolean()
+				if err != nil {
+					return nil, err
+				}
+			}
+		}
+	}
+
+	if node, ok := tbl.Fields["prometheus_string_as_label"]; ok {
+		if kv, ok := node.(*ast.KeyValue); ok {
+			if b, ok := kv.Value.(*ast.Boolean); ok {
+				var err error
+				c.PrometheusStringAsLabel, err = b.Boolean()
+				if err != nil {
+					return nil, err
+				}
+			}
+		}
+	}
+
 	delete(tbl.Fields, "influx_max_line_bytes")
 	delete(tbl.Fields, "influx_sort_fields")
 	delete(tbl.Fields, "influx_uint_support")
@@ -1985,8 +2048,12 @@ func buildSerializer(name string, tbl *ast.Table) (serializers.Serializer, error
 	delete(tbl.Fields, "template")
 	delete(tbl.Fields, "json_timestamp_units")
 	delete(tbl.Fields, "splunkmetric_hec_routing")
+	delete(tbl.Fields, "splunkmetric_multimetric")
 	delete(tbl.Fields, "wavefront_source_override")
 	delete(tbl.Fields, "wavefront_use_strict")
+	delete(tbl.Fields, "prometheus_export_timestamp")
+	delete(tbl.Fields, "prometheus_sort_metrics")
+	delete(tbl.Fields, "prometheus_string_as_label")
 	return serializers.NewSerializer(c)
 }
 
@@ -2026,6 +2093,19 @@ func buildOutput(name string, tbl *ast.Table) (*models.OutputConfig, error) {
 		}
 	}
 
+	if node, ok := tbl.Fields["flush_jitter"]; ok {
+		if kv, ok := node.(*ast.KeyValue); ok {
+			if str, ok := kv.Value.(*ast.String); ok {
+				dur, err := time.ParseDuration(str.Value)
+				if err != nil {
+					return nil, err
+				}
+				oc.FlushJitter = new(time.Duration)
+				*oc.FlushJitter = dur
+			}
+		}
+	}
+
 	if node, ok := tbl.Fields["metric_buffer_limit"]; ok {
 		if kv, ok := node.(*ast.KeyValue); ok {
 			if integer, ok := kv.Value.(*ast.Integer); ok {
@@ -2059,6 +2139,7 @@ func buildOutput(name string, tbl *ast.Table) (*models.OutputConfig, error) {
 	}
 
 	delete(tbl.Fields, "flush_interval")
+	delete(tbl.Fields, "flush_jitter")
 	delete(tbl.Fields, "metric_buffer_limit")
 	delete(tbl.Fields, "metric_batch_size")
 	delete(tbl.Fields, "alias")
